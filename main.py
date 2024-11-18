@@ -3,7 +3,7 @@ from PIL import Image
 import io
 from telebot import types
 
-TOKEN = '7447672865:AAFfFiIN89Z87JITebSfyxsYoq5IBt3NUsU'
+TOKEN = ''
 bot = telebot.TeleBot(TOKEN)
 
 user_states = {}  # тут будем хранить информацию о действиях пользователя
@@ -75,14 +75,6 @@ def send_welcome(message):
                  + "сделать!")
 
 
-@bot.message_handler(commands=['artsymb'])
-def handle_input_ascii_art_symbols(message):
-    msg = bot.reply_to(message,
-                       "Пожалуйста, введите символы для ASCII арт"
-                       + "(От самого тёмного до светлого (@%#*+=-:. ):")
-    bot.register_next_step_handler(msg, process_ascii_symbols_step)
-
-
 def process_ascii_symbols_step(message):
     global ascii_symbols_art
     ascii_symbols_art = message.text
@@ -97,6 +89,11 @@ def handle_photo(message):
                  + "Пожалуйста, выберите, что вы хотите сделать:",
                  reply_markup=get_options_keyboard())
     user_states[message.chat.id] = {'photo': message.photo[-1].file_id}
+
+    msg = bot.reply_to(message,
+                       "Пожалуйста, введите символы для ASCII арт"
+                       + "(От самого тёмного до светлого (@%#*+=-:. ):")
+    bot.register_next_step_handler(msg, process_ascii_symbols_step)
 
 
 def get_options_keyboard():
