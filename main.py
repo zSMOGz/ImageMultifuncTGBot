@@ -75,6 +75,11 @@ def invert_image(image):
     return ImageOps.invert(image)
 
 
+# Инвертирование изображения
+def mirror_image(image):
+    return image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.reply_to(message,
@@ -111,9 +116,12 @@ def get_options_keyboard():
                                            callback_data="ascii")
     invert_btn = types.InlineKeyboardButton("Invert",
                                             callback_data="invert")
+    mirror_btn = types.InlineKeyboardButton("Mirror",
+                                            callback_data="mirror")
     keyboard.add(pixelate_btn,
-                 ascii_btn,
-                 invert_btn)
+                 ascii_btn)
+    keyboard.add(invert_btn,
+                 mirror_btn)
     return keyboard
 
 
@@ -132,6 +140,10 @@ def callback_query(call):
         bot.answer_callback_query(call.id,
                                   "Инвертирование изображения...")
         invert_and_send(call.message)
+    elif call.data == "mirror":
+        bot.answer_callback_query(call.id,
+                                  "Отражение изображения...")
+        mirror_and_send(call.message)
 
 
 def pixelate_and_send(message):
@@ -172,6 +184,21 @@ def invert_and_send(message):
 
     output_stream = io.BytesIO()
     image_inverted.save(output_stream, format="JPEG")
+    output_stream.seek(0)
+    bot.send_photo(message.chat.id, output_stream)
+
+
+def mirror_and_send(message):
+    photo_id = user_states[message.chat.id]['photo']
+    file_info = bot.get_file(photo_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    image_stream = io.BytesIO(downloaded_file)
+    image = Image.open(image_stream)
+    image_mirrored = mirror_image(image)
+
+    output_stream = io.BytesIO()
+    image_mirrored.save(output_stream, format="JPEG")
     output_stream.seek(0)
     bot.send_photo(message.chat.id, output_stream)
 
