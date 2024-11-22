@@ -1,7 +1,10 @@
 import telebot
-from PIL import Image, ImageOps
 import io
+
+from PIL import Image, ImageOps
 from telebot import types
+from enum import Enum
+from telebot.types import InlineKeyboardButton as Button
 
 TOKEN = ''
 bot = telebot.TeleBot(TOKEN)
@@ -10,6 +13,11 @@ user_states = {}  # тут будем хранить информацию о д�
 
 # набор символов из которых составляем изображение
 ascii_symbols_art = '@%#*+=-:. '
+
+
+class MirrorTypes(Enum):
+    HORIZONTAL = 1
+    VERTICAL = 2
 
 
 def resize_image(image, new_width=100):
@@ -75,9 +83,14 @@ def invert_image(image):
     return ImageOps.invert(image)
 
 
-# Отражение изображения
-def mirror_image(image):
+# Отражение по горизонтали изображения
+def mirror_horizontal_image(image):
     return image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+
+
+# Отражение по вертикали изображения
+def mirror_vertical_image(image):
+    return image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -110,18 +123,21 @@ def handle_photo(message):
 
 def get_options_keyboard():
     keyboard = types.InlineKeyboardMarkup()
-    pixelate_btn = types.InlineKeyboardButton("Pixelate",
-                                              callback_data="pixelate")
-    ascii_btn = types.InlineKeyboardButton("ASCII Art",
-                                           callback_data="ascii")
-    invert_btn = types.InlineKeyboardButton("Invert",
-                                            callback_data="invert")
-    mirror_btn = types.InlineKeyboardButton("Mirror",
-                                            callback_data="mirror")
+    pixelate_btn = Button("Пикселизировать",
+                          callback_data="pixelate")
+    ascii_btn = Button("ASCII арт",
+                       callback_data="ascii")
+    invert_btn = Button("Инвертировать",
+                        callback_data="invert")
+    mirror_horizontal_btn = Button("Отразить по горизонтали",
+                                   callback_data="mirror_horizontal")
+    mirror_vertical_btn = Button("Отразить по вертикали",
+                                 callback_data="mirror_vertical")
     keyboard.add(pixelate_btn,
                  ascii_btn)
-    keyboard.add(invert_btn,
-                 mirror_btn)
+    keyboard.add(invert_btn)
+    keyboard.add(mirror_horizontal_btn,
+                 mirror_vertical_btn)
     return keyboard
 
 
@@ -140,10 +156,16 @@ def callback_query(call):
         bot.answer_callback_query(call.id,
                                   "Инвертирование изображения...")
         invert_and_send(call.message)
-    elif call.data == "mirror":
+    elif call.data == "mirror_horizontal":
         bot.answer_callback_query(call.id,
-                                  "Отражение изображения...")
-        mirror_and_send(call.message)
+                                  "Отражение изображения по "
+                                  + "горизонтали...")
+        mirror_horizontal_and_send(call.message)
+    elif call.data == "mirror_vertical":
+        bot.answer_callback_query(call.id,
+                                  "Отражение изображения по "
+                                  + "вертикали...")
+        mirror_vertical_and_send(call.message)
 
 
 def pixelate_and_send(message):
@@ -188,14 +210,26 @@ def invert_and_send(message):
     bot.send_photo(message.chat.id, output_stream)
 
 
-def mirror_and_send(message):
+def mirror_horizontal_and_send(message):
+    mirror_and_send(message, MirrorTypes.HORIZONTAL)
+
+
+def mirror_vertical_and_send(message):
+    mirror_and_send(message, MirrorTypes.VERTICAL)
+
+
+def mirror_and_send(message, mirror_type: MirrorTypes):
     photo_id = user_states[message.chat.id]['photo']
     file_info = bot.get_file(photo_id)
     downloaded_file = bot.download_file(file_info.file_path)
 
     image_stream = io.BytesIO(downloaded_file)
     image = Image.open(image_stream)
-    image_mirrored = mirror_image(image)
+
+    if mirror_type == MirrorTypes.HORIZONTAL:
+        image_mirrored = mirror_horizontal_image(image)
+    else:
+        image_mirrored = mirror_vertical_image(image)
 
     output_stream = io.BytesIO()
     image_mirrored.save(output_stream, format="JPEG")
