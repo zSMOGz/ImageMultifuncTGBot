@@ -75,7 +75,7 @@ def invert_image(image):
     return ImageOps.invert(image)
 
 
-# Инвертирование изображения
+# Отражение изображения
 def mirror_image(image):
     return image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
 
