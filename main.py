@@ -93,6 +93,14 @@ def mirror_vertical_image(image):
     return image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
 
 
+# Тепловая карта изображения
+def convert_to_heatmap_image(image):
+    # Преобразуем изображение в оттенки серого
+    image = image.convert('L')
+
+    return ImageOps.colorize(image, (0, 0, 255), (255, 0, 0))
+
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.reply_to(message,
@@ -133,11 +141,14 @@ def get_options_keyboard():
                                    callback_data="mirror_horizontal")
     mirror_vertical_btn = Button("Отразить по вертикали",
                                  callback_data="mirror_vertical")
+    convert_to_heatmap_btn = Button("Преобразовать в тепловую карту ",
+                                    callback_data="convert_to_heatmap")
     keyboard.add(pixelate_btn,
                  ascii_btn)
     keyboard.add(invert_btn)
     keyboard.add(mirror_horizontal_btn,
                  mirror_vertical_btn)
+    keyboard.add(convert_to_heatmap_btn)
     return keyboard
 
 
@@ -166,6 +177,11 @@ def callback_query(call):
                                   "Отражение изображения по "
                                   + "вертикали...")
         mirror_vertical_and_send(call.message)
+    elif call.data == "convert_to_heatmap":
+        bot.answer_callback_query(call.id,
+                                  "Преобразование изображения в"
+                                  + "тепловую карту...")
+        convert_to_heatmap_and_send(call.message)
 
 
 def pixelate_and_send(message):
@@ -233,6 +249,21 @@ def mirror_and_send(message, mirror_type: MirrorTypes):
 
     output_stream = io.BytesIO()
     image_mirrored.save(output_stream, format="JPEG")
+    output_stream.seek(0)
+    bot.send_photo(message.chat.id, output_stream)
+
+
+def convert_to_heatmap_and_send(message):
+    photo_id = user_states[message.chat.id]['photo']
+    file_info = bot.get_file(photo_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    image_stream = io.BytesIO(downloaded_file)
+    image = Image.open(image_stream)
+    image_converted = convert_to_heatmap_image(image)
+
+    output_stream = io.BytesIO()
+    image_converted.save(output_stream, format="JPEG")
     output_stream.seek(0)
     bot.send_photo(message.chat.id, output_stream)
 
