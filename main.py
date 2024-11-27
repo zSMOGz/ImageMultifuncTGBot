@@ -7,6 +7,8 @@ from enum import Enum
 from telebot.types import InlineKeyboardButton as Button
 
 TOKEN = ''
+MAX_WIDTH_STICKER = 512
+
 bot = telebot.TeleBot(TOKEN)
 
 user_states = {}  # тут будем хранить информацию о действиях пользователя
@@ -24,6 +26,21 @@ def resize_image(image, new_width=100):
     width, height = image.size
     ratio = height / width
     new_height = int(new_width * ratio)
+    return image.resize((new_width, new_height))
+
+
+def resize_for_sticker(image, new_width=100):
+    width, height = image.size
+
+    if height > width:
+        new_height = MAX_WIDTH_STICKER
+        ratio = width / height
+        new_width = int(new_height * ratio)
+    else:
+        new_width = MAX_WIDTH_STICKER
+        ratio = height / width
+        new_height = int(new_width * ratio)
+
     return image.resize((new_width, new_height))
 
 
