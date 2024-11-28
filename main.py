@@ -5,9 +5,23 @@ from PIL import Image, ImageOps
 from telebot import types
 from enum import Enum
 from telebot.types import InlineKeyboardButton as Button
+import random
 
 TOKEN = ''
 MAX_WIDTH_STICKER = 512
+JOKES = ["""Почему комедии Аристофана были такие смешные? 
+Есть два варианта:  либо потому что ори и 100 фан, 
+либо потому что, кто не смеётся, будет аристофан.""",
+         """- Третий разряд по шахматам!
+- Чёрт, это самые бессмысленные пытки, которые я видел!
+- Ты прав, они не колятся. Неси топор!""",
+         """- Этот кроссовок - президент Франции.
+- Почему?
+- Мокр он...""",
+         """- Я занимаюсь пилатесом...
+- Если ты пила Tess, не значит, что ты занималась пилатесом""",
+         """Хотелось бы отдохнуть 100 лет, ведь я - чила век.""",
+         """Молоко ультравпастьтебевсованное."""]
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -118,11 +132,23 @@ def convert_to_heatmap_image(image):
     return ImageOps.colorize(image, (0, 0, 255), (255, 0, 0))
 
 
+# Случайная шутка
+def get_random_joke():
+    return random.choice(JOKES)
+
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.reply_to(message,
                  "Отправьте мне изображение, и я подумаю, что можно "
                  + "сделать!")
+
+
+@bot.message_handler(commands=['text'])
+def send_welcome(message):
+    bot.reply_to(message,
+                 "Выберите, что вы хотите сделать:",
+                 reply_markup=get_text_options_keyboard())
 
 
 def process_ascii_symbols_step(message):
@@ -137,7 +163,7 @@ def handle_photo(message):
     bot.reply_to(message,
                  "Я получил ваше изображение! "
                  + "Пожалуйста, выберите, что вы хотите сделать:",
-                 reply_markup=get_options_keyboard())
+                 reply_markup=get_photo_options_keyboard())
     user_states[message.chat.id] = {'photo': message.photo[-1].file_id}
 
     msg = bot.reply_to(message,
@@ -146,7 +172,7 @@ def handle_photo(message):
     bot.register_next_step_handler(msg, process_ascii_symbols_step)
 
 
-def get_options_keyboard():
+def get_photo_options_keyboard():
     keyboard = types.InlineKeyboardMarkup()
     pixelate_btn = Button("Пикселизировать",
                           callback_data="pixelate")
@@ -166,6 +192,14 @@ def get_options_keyboard():
     keyboard.add(mirror_horizontal_btn,
                  mirror_vertical_btn)
     keyboard.add(convert_to_heatmap_btn)
+    return keyboard
+
+
+def get_text_options_keyboard():
+    keyboard = types.InlineKeyboardMarkup()
+    random_joke_btn = Button("Случайная шутка",
+                             callback_data="random_joke")
+    keyboard.add(random_joke_btn)
     return keyboard
 
 
@@ -199,6 +233,10 @@ def callback_query(call):
                                   "Преобразование изображения в"
                                   + "тепловую карту...")
         convert_to_heatmap_and_send(call.message)
+    elif call.data == "random_joke":
+        bot.answer_callback_query(call.id,
+                                  "Случайная шутка...")
+        random_joke_and_send(call.message)
 
 
 def pixelate_and_send(message):
@@ -283,6 +321,11 @@ def convert_to_heatmap_and_send(message):
     image_converted.save(output_stream, format="JPEG")
     output_stream.seek(0)
     bot.send_photo(message.chat.id, output_stream)
+
+
+def random_joke_and_send(message):
+    joke = get_random_joke()
+    bot.send_message(message.chat.id, joke)
 
 
 bot.polling(none_stop=True)
