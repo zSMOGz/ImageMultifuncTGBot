@@ -22,6 +22,13 @@ JOKES = ["""Почему комедии Аристофана были такие
 - Если ты пила Tess, не значит, что ты занималась пилатесом""",
          """Хотелось бы отдохнуть 100 лет, ведь я - чила век.""",
          """Молоко ультравпастьтебевсованное."""]
+COMPLEMENTS = ["""Ты красивый, как мусор в лучах закатного солнца""",
+               """У тебя такая нежная кожа, как будто поженились поверхность
+луны и наждачка""",
+               """Твои волосы словно лунный свет - они повсюду""",
+               """Ты похож на пакет""",
+               """Видела тебя вчера в ресторане, ты так очаровательно пытался 
+купить просрочку"""]
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -137,6 +144,11 @@ def get_random_joke():
     return random.choice(JOKES)
 
 
+# Случайный комплемент
+def get_random_complements():
+    return random.choice(COMPLEMENTS)
+
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.reply_to(message,
@@ -199,7 +211,9 @@ def get_text_options_keyboard():
     keyboard = types.InlineKeyboardMarkup()
     random_joke_btn = Button("Случайная шутка",
                              callback_data="random_joke")
-    keyboard.add(random_joke_btn)
+    random_component_btn = Button("Случайный комплемент",
+                                  callback_data="random_component")
+    keyboard.add(random_joke_btn, random_component_btn)
     return keyboard
 
 
@@ -237,6 +251,10 @@ def callback_query(call):
         bot.answer_callback_query(call.id,
                                   "Случайная шутка...")
         random_joke_and_send(call.message)
+    elif call.data == "random_component":
+        bot.answer_callback_query(call.id,
+                                  "Случайная комплемент...")
+        random_complement_and_send(call.message)
 
 
 def pixelate_and_send(message):
@@ -326,6 +344,11 @@ def convert_to_heatmap_and_send(message):
 def random_joke_and_send(message):
     joke = get_random_joke()
     bot.send_message(message.chat.id, joke)
+
+
+def random_complement_and_send(message):
+    complement = get_random_complements()
+    bot.send_message(message.chat.id, complement)
 
 
 bot.polling(none_stop=True)
